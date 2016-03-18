@@ -120,7 +120,7 @@ if __name__ == "__main__":
     ytrain = train["TARGET"];
     xtrain = train.drop(labels="TARGET", axis=1);        
     norm_xtrain, normalizer = apply_norm_feat(xtrain);
-    norm_xtest = normalizer.transform(test);  
+    norm_xtest = normalizer.transform(test);
     
     #Apply principal components analysis on training, and transform the test data 
     #xtrain_comps, pcaest = apply_PCA(norm_xtrain);
@@ -131,10 +131,10 @@ if __name__ == "__main__":
     #Apply logistic regression on training data
     logistic = LogisticRegression(); 
     #param_grid_vals = {'C':np.logspace(-4, 4, 3)}
-    pipe = Pipeline(steps=[('pca', pca), ('logistic', logistic)]); 
+    pipe = Pipeline(steps=[('pca', pca), ('logistic', logistic)]);
     #estimator = GridSearchCV(logistic, param_grid=param_grid_vals, verbose=2);
-    n_components = [100, 150];
-    Cs=np.logspace(-4, 2, 3);
+    n_components = [100];
+    Cs=np.logspace(-5, -1, 5);
     estimator = GridSearchCV(pipe, dict(pca__n_components=n_components, logistic__C=Cs), verbose=2);
     estimator.fit(norm_xtrain, ytrain);
     
