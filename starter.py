@@ -11,11 +11,13 @@ import os;
 from sklearn.feature_selection import VarianceThreshold;
 import itertools;
 from sklearn.decomposition import PCA;
-from sklearn.preprocessing import Normalizer;
+from sklearn.preprocessing import StandardScaler;
 from matplotlib import pyplot as plt;
 from sklearn.pipeline import Pipeline;
 from sklearn.linear_model import LogisticRegression;
 from sklearn.grid_search import GridSearchCV;
+from sklearn.cross_validation import cross_val_score;
+
 
 def rem_constant_feat(pd_dataframe):
     selector = VarianceThreshold();
@@ -43,52 +45,50 @@ def rem_identical_feat(pd_dataframe):
     return pd_dataframe, delete_feats;
     
 def apply_norm_feat(pd_dataframe):    
-    normalizer = Normalizer();    
+    normalizer = StandardScaler();    
     norm_xtrain = normalizer.fit_transform(xtrain); 
     print("  - Normalized the training dataset");
     return norm_xtrain, normalizer;
 
-def apply_PCA(xtrain, ytrain):    
+def apply_PCA(xtrain):    
        
-    pca = PCA();
-    logistic = LogisticRegression();
-    pipe = Pipeline(steps=[('pca', pca), ('logistic', logistic)]); 
+    pca = PCA(n_components=100);
+    #logistic = LogisticRegression();
+    #pipe = Pipeline(steps=[('pca', pca), ('logistic', logistic)]); 
     
-    n_components = [100, 150, 200];
-    Cs=np.logspace(-4, 4, 3);
-    estimator = GridSearchCV(pipe, dict(pca__n_components=n_components, logistic__C=Cs), verbose=2);
-    estimator.fit(xtrain, ytrain);
+    #n_components = [100, 150, 200];
+    #Cs=np.logspace(-4, 4, 3);
+    #estimator = GridSearchCV(pipe, dict(pca__n_components=n_components, logistic__C=Cs), verbose=2);
+    #estimator.fit(xtrain, ytrain);
     xtrain_comps = pca.fit_transform(xtrain);
+    print("  - Applied PCA on the training dataset");
+    return xtrain_comps, pca;
     
-#    plt.axvline(estimator.best_estimator_.named_steps['pca'].n_components,
-#            linestyle=':', label='n_components chosen')
-#    plt.legend(prop=dict(size=12));
-#    plt.show();
+def pca_visualize(pca, xtrain, ytrain):
     
-    #Visualization
-#    classes = np.sort(np.unique(ytrain))
-#    labels = ["Satisfied customer", "Unsatisfied customer"]
-#    fig = plt.figure(figsize=(10, 7))
-#    ax = fig.add_subplot(1, 1, 1)
-#    colors = [(0.0, 0.63, 0.69), 'black']
-#    markers = ["o", "D"]
-#    for class_ix, marker, color, label in zip(
-#            classes, markers, colors, labels):
-#        ax.scatter(xtrain_comps[np.where(ytrain == class_ix), 0],
-#                   xtrain_comps[np.where(ytrain == class_ix), 1],
-#                   marker=marker, color=color, edgecolor='whitesmoke',
-#                   linewidth='1', alpha=0.9, label=label)
-#        ax.legend(loc='best')
-#    plt.title(
-#        "Scatter plot of the training data examples projected on the "
-#        "2 first principal components")
-#    plt.xlabel("Principal axis 1 - Explains %.1f %% of the variance" % (
-#        pca.explained_variance_ratio_[0] * 100.0))
-#    plt.ylabel("Principal axis 2 - Explains %.1f %% of the variance" % (
-#        pca.explained_variance_ratio_[1] * 100.0))
-#    plt.show()
+    classes = np.sort(np.unique(ytrain))
+    labels = ["Satisfied customer", "Unsatisfied customer"]
+    fig = plt.figure(figsize=(10, 7))
+    ax = fig.add_subplot(1, 1, 1)
+    colors = [(0.0, 0.63, 0.69), 'black']
+    markers = ["o", "D"]
+    for class_ix, marker, color, label in zip(
+            classes, markers, colors, labels):
+        ax.scatter(xtrain[np.where(ytrain == class_ix), 0],
+                   xtrain[np.where(ytrain == class_ix), 1],
+                   marker=marker, color=color, edgecolor='whitesmoke',
+                   linewidth='1', alpha=0.9, label=label)
+        ax.legend(loc='best')
+    plt.title(
+        "Scatter plot of the training data examples projected on the "
+        "2 first principal components")
+    plt.xlabel("Principal axis 1 - Explains %.1f %% of the variance" % (
+        pca.explained_variance_ratio_[0] * 100.0))
+    plt.ylabel("Principal axis 2 - Explains %.1f %% of the variance" % (
+        pca.explained_variance_ratio_[1] * 100.0))
+    plt.show();
+    return;
     
-    return xtrain_comps, estimator;
     
 def make_submission(clf, xtest, ids, name='submission_test.csv'):
     y_prob = clf.predict_proba(xtest)
@@ -107,19 +107,38 @@ if __name__ == "__main__":
     os.chdir("C:/Users/vinay.benny/Documents/Kaggle/Santader");
     train = pd.DataFrame.from_csv("train.csv");
     test = pd.DataFrame.from_csv("test.csv");
+    
+    #Remove constant features in train, and drop the same in test    
     train, indices = rem_constant_feat(train);
     test = test.drop(labels=test[indices], axis=1);
     
+    #Remove identical features in training datasets, and drop the same in test
     train, feats = rem_identical_feat(train);
     test = test.drop(labels=feats, axis=1);
     
+    # Apply normalization to training data, and use the normalizer on test
     ytrain = train["TARGET"];
     xtrain = train.drop(labels="TARGET", axis=1);        
-    norm_xtrain, normalizer = apply_norm_feat(train);
+    norm_xtrain, normalizer = apply_norm_feat(xtrain);
     norm_xtest = normalizer.transform(test);  
     
-    train_comps, estimator = apply_PCA(norm_xtrain, ytrain);
-    ytest_prob = make_submission(estimator, norm_xtest,test.index.values.astype(str)); 
+    #Apply principal components analysis on training, and transform the test data 
+    #xtrain_comps, pcaest = apply_PCA(norm_xtrain);
+    pca = PCA();
+    #xtest_comps = pcaest.transform(norm_xtest);
+    #pca_visualize(pcaest, xtrain_comps, ytrain);
+    
+    #Apply logistic regression on training data
+    logistic = LogisticRegression(); 
+    #param_grid_vals = {'C':np.logspace(-4, 4, 3)}
+    pipe = Pipeline(steps=[('pca', pca), ('logistic', logistic)]); 
+    #estimator = GridSearchCV(logistic, param_grid=param_grid_vals, verbose=2);
+    n_components = [100, 150];
+    Cs=np.logspace(-4, 2, 3);
+    estimator = GridSearchCV(pipe, dict(pca__n_components=n_components, logistic__C=Cs), verbose=2);
+    estimator.fit(norm_xtrain, ytrain);
+    
+    ytest_prob = make_submission(estimator, norm_xtest, test.index.values.astype(str));
     
     
     
