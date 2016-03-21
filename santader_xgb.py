@@ -81,7 +81,7 @@ if __name__ == "__main__":
     params = {"objective": "binary:logistic",
               "booster": "gbtree",
               "eta": 0.02,
-              "max_depth": 5,
+              "max_depth": 6,
               "subsample": 0.9,
               "colsample_bytree": 0.85,
               "silent": 1,
@@ -93,15 +93,15 @@ if __name__ == "__main__":
     y_test_xgb = gbm.predict(dtest, ntree_limit=gbm.best_ntree_limit);
     
     # Train a random forest classifier    
-    rf = RandomForestClassifier(n_estimators=100, random_state=1, oob_score=True, verbose=1, criterion="entropy", max_depth=5);
-    rf.fit(norm_xtrain, norm_ytrain);
+    rf = RandomForestClassifier(n_estimators=100, random_state=1, oob_score=True, verbose=1, criterion="gini", max_depth=10);
+    rf.fit(norm_xtrain, ytrain);
     
     y_test_rf = rf.predict(norm_xtest);
     
-    y_test = 0.8*(y_test_xgb) + 0.2*(y_test_rf);    
+    y_test = 1.0*(y_test_xgb) + 0.0*(y_test_rf);    
     
     submission = pd.DataFrame({"ID": test.index.values.astype(str), "TARGET": y_test});
-    submission.to_csv("xgboost_submission1.csv", index=False);
+    submission.to_csv("xgboost_rf_submission.csv", index=False);
     xgb.plot_importance(gbm);
     
     

@@ -70,8 +70,8 @@ if __name__ == "__main__":
     norm_xtest = normalizer.transform(test);   
     
     # Train a random forest classifier    
-    rf = RandomForestClassifier(n_estimators=20);
-    param_grid_vals={'max_depth': [5,7,10], "criterion": ["gini", "entropy"], 'oob_score' : [True]}
+    rf = RandomForestClassifier(n_estimators=100);
+    param_grid_vals={'max_depth': [5,7,10], "criterion": ["gini", "entropy"], 'oob_score' : [True], 'class_weight':["auto"]}
     estimator = GridSearchCV(rf, param_grid=param_grid_vals, verbose=2); 
     estimator.fit(norm_xtrain, ytrain);
     
