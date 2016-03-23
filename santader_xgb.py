@@ -93,12 +93,12 @@ if __name__ == "__main__":
     y_test_xgb = gbm.predict(dtest, ntree_limit=gbm.best_ntree_limit);
     
     # Train a random forest classifier    
-    rf = RandomForestClassifier(n_estimators=100, random_state=1, oob_score=True, verbose=1, criterion="gini", max_depth=10);
+    rf = RandomForestClassifier(n_estimators=100, random_state=1, oob_score=True, verbose=1, criterion="gini", max_depth=10, class_weight="balanced");
     rf.fit(norm_xtrain, ytrain);
     
     y_test_rf = rf.predict(norm_xtest);
     
-    y_test = 1.0*(y_test_xgb) + 0.0*(y_test_rf);    
+    y_test = 0.8*(y_test_xgb) + 0.2*(y_test_rf);    
     
     submission = pd.DataFrame({"ID": test.index.values.astype(str), "TARGET": y_test});
     submission.to_csv("xgboost_rf_submission.csv", index=False);
